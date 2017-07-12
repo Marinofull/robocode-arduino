@@ -5,7 +5,7 @@
   * Pedro Marques
   Version: 0.2.0
   Boards Supported:
-  * Arduino UNO*
+    * Arduino UNO
   Dependencies:
   * XBee-Arduino Library, 0.6.0
   * XCTU, 6.3.8 (usado externamente para monitorar comunicação entre xbee e arduino)
@@ -13,12 +13,12 @@
   Descrição do projeto
 */
 
-#include <string.h>
 #include <SoftwareSerial.h>
 
 #define MEM 50
 #define PORTARX 2
 #define PORTATX 3
+
 String msg;
 int mem[MEM];
 
@@ -35,6 +35,7 @@ void setup(){
     delay(500);
     if(XBee.isListening()) {
       Serial.println("XBee está conectado!");
+            XBee.println("XBee está conectado!");
     }
 }
 
@@ -52,6 +53,8 @@ void loop(){
     //Se tiver data vindo do XBee
     if(XBee.available()) {
         msg = String(XBee.readString());
+        Serial.print("eu li: ");
+        Serial.println(msg);
         parse_msg_xbee(msg);
     }
 }
@@ -78,6 +81,8 @@ int parse_msg(String msg){
             Serial.println(&msg[1]);
             break;
         default:
+            Serial.print("could not handle ");
+            Serial.println(msg);
         break;
     }
     return 0;
@@ -104,6 +109,8 @@ int parse_msg_xbee(String msg){
             XBee.println(&msg[1]);
             break;
         default:
+        XBee.print("could not handle ");
+        XBee.println(msg);
         break;
     }
     return 0;
