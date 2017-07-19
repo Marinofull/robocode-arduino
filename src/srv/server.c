@@ -79,22 +79,18 @@ int main(){
 
 void w_move(FILE *serial_port){
   fprintf(serial_port, "S0=1\n");
-  sleep(1);
   fprintf(serial_port, "S1=1\n");
 }
 void s_move(FILE *serial_port){
   fprintf(serial_port, "S0=-1\n");
-  sleep(1);
   fprintf(serial_port, "S1=-1\n");
 }
 void q_move(FILE *serial_port){
   fprintf(serial_port, "S0=1\n");
-  sleep(1);
   fprintf(serial_port, "S1=0\n");
 }
 void e_move(FILE *serial_port){
   fprintf(serial_port, "S0=0\n");
-  sleep(1);
   fprintf(serial_port, "S1=1\n");
 }
 void a_move(FILE *serial_port){

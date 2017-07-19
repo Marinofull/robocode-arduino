@@ -14,15 +14,24 @@
 */
 
 #include <SoftwareSerial.h>
+#include <Servo.h>
 
 #define MEM 50
 #define PORTARX 2
 #define PORTATX 3
 
+int parse_msg(String msg);
+int parse_msg_xbee(String msg);
+void sensor();
+void swing();
+void extend();
+
 String msg;
 int mem[MEM];
+int pos = 0;    // variable to store the servo position
 
 SoftwareSerial XBee(PORTARX, PORTATX);
+Servo myservo;  // create servo object to control a servo
 
 void setup(){
     XBee.begin(9600);
@@ -32,15 +41,14 @@ void setup(){
         /*
         Seta as coisa reservada
         */
+    myservo.attach(9);  // attaches the servo on pin 9 to the servo object
+    extend();
     delay(500);
     if(XBee.isListening()) {
       Serial.println("XBee está conectado!");
             XBee.println("XBee está conectado!");
     }
 }
-
-int parse_msg(String msg);
-int parse_msg_xbee(String msg);
 
 void loop(){
 
@@ -57,6 +65,8 @@ void loop(){
         Serial.println(msg);
         parse_msg_xbee(msg);
     }
+    //sensor();
+    //swing();
 }
 
 
@@ -114,4 +124,36 @@ int parse_msg_xbee(String msg){
         break;
     }
     return 0;
+}
+
+void sensor(){
+  Serial.print("Frente = ");
+  Serial.println(analogRead(A3));
+  Serial.print("Tras = ");
+  Serial.println(analogRead(A2));
+  Serial.print("Esquerda = ");
+  Serial.println(analogRead(A0));
+  Serial.print("Direita = ");
+  Serial.println(analogRead(A1));
+
+  delay(1000);
+}
+
+void swing()
+{
+  for(pos = 180; pos>=0; pos-=1)     // goes from 180 degrees to 0 degrees
+  {
+    myservo.write(pos);              // tell servo to go to position in variable 'pos'
+    delay(15);                       // waits 15ms for the servo to reach the position
+  }
+  for(pos = 0; pos <= 180; pos += 1) // goes from 0 degrees to 180 degrees
+  {                                  // in steps of 1 degree
+    myservo.write(pos);              // tell servo to go to position in variable 'pos'
+    delay(15);                       // waits 15ms for the servo to reach the position
+  }
+}
+
+void extend(){
+  myservo.write(180);
+  delay(1000);
 }
