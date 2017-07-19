@@ -28,7 +28,7 @@ void setup(){
     XBee.begin(9600);
     Serial.begin(9600);
     for(int i=0; i<MEM; i++)
-        mem[i]=-1;
+        mem[i]=0;
         /*
         Seta as coisa reservada
         */
@@ -66,12 +66,12 @@ int parse_msg(String msg){
 
     switch(c){
         case 'G':
-            p = atoi(&msg[1]) -1;
+            p = atoi(&msg[1]);
             Serial.print("R");//Response prefix
             Serial.println(mem[p]);
             break;
         case 'S':
-            p = atoi(&msg[1]) -1;
+            p = atoi(&msg[1]);
             value = atoi(&msg[msg.indexOf('=')+1]);
             mem[p] = value;
             Serial.print("R");//Response prefix
@@ -94,12 +94,12 @@ int parse_msg_xbee(String msg){
 
     switch(c){
         case 'G':
-            p = atoi(&msg[1]) -1;
+            p = atoi(&msg[1]);
             XBee.print("R");//Response prefix
             XBee.println(mem[p]);
             break;
         case 'S':
-            p = atoi(&msg[1]) -1;
+            p = atoi(&msg[1]);
             value = atoi(&msg[msg.indexOf('=')+1]);
             mem[p] = value;
             XBee.print("R");//Response prefix
@@ -109,8 +109,8 @@ int parse_msg_xbee(String msg){
             XBee.println(&msg[1]);
             break;
         default:
-        XBee.print("could not handle ");
-        XBee.println(msg);
+//        XBee.print("could not handle ");
+  //      XBee.println(msg);
         break;
     }
     return 0;
