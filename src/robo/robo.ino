@@ -22,7 +22,7 @@
 
 int parse_msg(String msg);
 int parse_msg_xbee(String msg);
-void sensor();
+void sensorDebug();
 void swing();
 void extend();
 
@@ -65,7 +65,7 @@ void loop(){
         Serial.println(msg);
         parse_msg_xbee(msg);
     }
-    //sensor();
+    //sensorDebug();
     //swing();
 }
 
@@ -126,17 +126,19 @@ int parse_msg_xbee(String msg){
     return 0;
 }
 
-void sensor(){
+void sensorDebug(){
   Serial.print("Frente = ");
-  Serial.println(analogRead(A3));
-  Serial.print("Tras = ");
   Serial.println(analogRead(A2));
-  Serial.print("Esquerda = ");
-  Serial.println(analogRead(A0));
+  Serial.print("Centro = ");
+  Serial.println(analogRead(A4));
+  Serial.print("Tras = ");
+  Serial.println(analogRead(A3));
   Serial.print("Direita = ");
+  Serial.println(analogRead(A0));
+  Serial.print("Esquerda = ");
   Serial.println(analogRead(A1));
 
-  delay(1000);
+  delay(2000);
 }
 
 void swing()
