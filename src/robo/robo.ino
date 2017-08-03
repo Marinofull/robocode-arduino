@@ -16,6 +16,9 @@
 #include <SoftwareSerial.h>
 #include <Servo.h>
 
+/********************************
+ *        Definitions           *
+ ********************************/
 #define MEM 50
 #define PORTARX 2
 #define PORTATX 3
@@ -25,18 +28,39 @@
 #define TRAS A3
 #define CENTRO A4
 
+typedef enum {
+  ALL_BLACK,
+  INLINE,
+  LEAVING_TO_RIGHT,
+  LEAVING_TO_LEFT,
+  RIGHT_BEND,
+  LEFT_BEND,
+  RIGHT_BEND_REVERSE,
+  LEFT_BEND_REVERSE,
+  ALL_WHITE
+  
+} PatternType;
+
+/*
+ * Declarations
+ */
 int parse_msg(String msg);
 int parse_msg_xbee(String msg);
 void sensorDebug();
 void swing();
 void extend();
 
+/*
+ * Globals
+ */
 String msg;
 int mem[MEM];
 int pos = 0;    // variable to store the servo position
 
 SoftwareSerial XBee(PORTARX, PORTATX);
 Servo myservo;  // create servo object to control a servo
+
+
 
 void setup() {
   XBee.begin(9600);
@@ -46,8 +70,8 @@ void setup() {
   /*
     Seta as coisa reservada
   */
-  myservo.attach(9);  // attaches the servo on pin 9 to the servo object
-  extend();
+  //myservo.attach(9);  // attaches the servo on pin 9 to the servo object
+  //extend();
   delay(500);
   if (XBee.isListening()) {
     Serial.println("XBee está conectado!");
@@ -60,6 +84,8 @@ void loop() {
   //Se tiver data sendo mandada pelo serial monitor
   if (Serial.available()) {
     msg = String(Serial.readString());
+    Serial.print("eu li: ");
+    Serial.println(msg);
     parse_msg(msg);
   }
 
@@ -72,48 +98,60 @@ void loop() {
   }
   //sensorDebug();
   //swing();
-  //debugPattern(identify_pattern());
+  debugPattern(identify_pattern());
 }
 
-int identify_pattern() {
+PatternType identify_pattern() {
   bool frente = readingLine(analogRead(FRENTE));
   bool tras = readingLine(analogRead(TRAS));
   bool direita = readingLine(analogRead(DIREITA));
   bool esquerda = readingLine(analogRead(ESQUERDA));
   bool centro = readingLine(analogRead(CENTRO));
 
+  PatternType pattern = ALL_WHITE;
+  
   if(frente && tras && centro && direita && esquerda) {
     // tudo ligado, em cima de área preta
+    pattern = ALL_BLACK;
   }
 
-  if(frente && tras && centro && !direta && !esquerda) {
+  if(frente && tras && centro && !direita && !esquerda) {
     // em cima da linha
+    pattern = INLINE;
   }
   if(frente && tras && centro && direita && !esquerda) {
     // sainda da linha à direita
     // corrigir para a esquerda
+    pattern = LEAVING_TO_RIGHT;
   }
   if(frente && tras && centro && !direita && esquerda) {
     // sainda da linha à esquerda
     // corrigir para a direita
+    pattern = LEAVING_TO_LEFT;
   }
   if(!frente && tras && centro && direita && !esquerda) {
     // em cima de curva fechada para a direita
+    pattern = RIGHT_BEND;
   }
   if(!frente && tras && centro && !direita && esquerda) {
     // em cima de curva fechada para a esquerda
+    pattern = LEFT_BEND;
   }
   if(frente && !tras && centro && direita && !esquerda) {
     // em cima de curva para a direita indo para a frente
+    pattern = RIGHT_BEND_REVERSE;
   }
   if(frente && !tras && centro && !direita && esquerda) {
     // em cima de curva para a esquerda indo para a frente
+    pattern = LEFT_BEND_REVERSE;
   }
 
   if(!frente && !tras && !centro && !direita && !esquerda) {
     // tudo desligado, em cima de área branca
+    pattern = ALL_WHITE;
   }
 
+  return pattern;
 }
 
 
@@ -211,6 +249,18 @@ bool readingLine(int value) {
   return value >= 512;
 }
 
-void debugPattern(int pattern) {
-
+void debugPattern(PatternType pattern) {
+  Serial.println("\nIdentifying pattern:");
+  switch(pattern){ 
+    case ALL_BLACK:
+        Serial.println("All black");
+      break;
+    case ALL_WHITE:
+        Serial.println("All white");
+      break;
+    default:
+        Serial.println("Not recognized");
+      break;
+  }
+  delay(2000);
 }
