@@ -1,58 +1,25 @@
 /*
   Project Name: robo
   Authors:
-    * Marino Hohenheim
-    * Pedro Marques
+      Marino Hohenheim
+      Pedro Marques
   Version: 0.2.0
   Boards Supported:
-    * Arduino UNO
+      Arduino UNO
   Dependencies:
-    * XBee-Arduino Library, 0.6.0
-    * XCTU, 6.3.8 (usado externamente para monitorar comunicação entre xbee e arduino)
+      XBee-Arduino Library, 0.6.0
+      XCTU, 6.3.8 (usado externamente para monitorar comunicação entre xbee e arduino)
   Description:
   Descrição do projeto
 */
 
+#include "robo_def.h"
 #include <SoftwareSerial.h>
 #include <Servo.h>
 
-/********************************
- *        Definitions           *
- ********************************/
-#define MEM 50
-#define PORTARX 2
-#define PORTATX 3
-#define DIREITA A0
-#define ESQUERDA A1
-#define FRENTE A2
-#define TRAS A3
-#define CENTRO A4
-
-typedef enum {
-  ALL_BLACK,
-  INLINE,
-  LEAVING_TO_RIGHT,
-  LEAVING_TO_LEFT,
-  RIGHT_BEND,
-  LEFT_BEND,
-  RIGHT_BEND_REVERSE,
-  LEFT_BEND_REVERSE,
-  ALL_WHITE
-  
-} PatternType;
-
 /*
- * Declarations
- */
-int parse_msg(String msg);
-int parse_msg_xbee(String msg);
-void sensorDebug();
-void swing();
-void extend();
-
-/*
- * Globals
- */
+   Globals
+*/
 String msg;
 int mem[MEM];
 int pos = 0;    // variable to store the servo position
@@ -60,7 +27,24 @@ int pos = 0;    // variable to store the servo position
 SoftwareSerial XBee(PORTARX, PORTATX);
 Servo myservo;  // create servo object to control a servo
 
+/*
+   Vendor stuff
+*/
+// Velocidade armazenada PWM
+volatile int pwmDireita = 0;
+volatile int pwmEsquerda = 0;
 
+// Numero de passos do Encoder Ótico
+volatile int contador_direita = 0;
+volatile int contador_esquerda = 0;
+
+// Definir velocidades
+int velocidadeDireita  = 130;
+int velocidadeEsquerda = 130;
+
+/***********************************************************************************************************
+    SETUP
+ ***********************************************************************************************************/
 
 void setup() {
   XBee.begin(9600);
@@ -77,7 +61,28 @@ void setup() {
     Serial.println("XBee está conectado!");
     XBee.println("XBee está conectado!");
   }
+
+  /*
+     Vendor stuff
+  */
+  // Configuração dos pinos da Ponte H
+  pinMode(DIRECAO_DIREITA_1, OUTPUT);
+  pinMode(DIRECAO_DIREITA_2, OUTPUT);
+  pinMode(DIRECAO_ESQUERDA_1, OUTPUT);
+  pinMode(DIRECAO_ESQUERDA_2, OUTPUT);
+
+  // Configuração dos pinos do Encoder Ótico
+  //pinMode(ENCODER_DIREITA, INPUT_PULLUP);
+  //pinMode(ENCODER_ESQUERDA, INPUT_PULLUP);
+
+  // Funções de Interrupção de cada um dos Encoders
+  //attachInterrupt(digitalPinToInterrupt(ENCODER_DIREITA), contadorDireita, CHANGE);
+  //attachInterrupt(digitalPinToInterrupt(ENCODER_ESQUERDA), contadorEsquerda, CHANGE);
 }
+
+/***********************************************************************************************************
+    LOOP
+ ***********************************************************************************************************/
 
 void loop() {
 
@@ -99,7 +104,22 @@ void loop() {
   //sensorDebug();
   //swing();
   debugPattern(identify_pattern());
+
+  /*
+     Vendor stuff
+     ACELERA_DIREITA(velocidadeDireita);
+    ACELERA_ESQUERDA(velocidadeEsquerda);
+    IR_PARA_FRENTE_DIREITA();
+    IR_PARA_FRENTE_ESQUERDA();
+    delay(1000);
+    FREIO();
+    delay(1500);
+  */
 }
+
+/***********************************************************************************************************
+    Outras Funções
+ ***********************************************************************************************************/
 
 PatternType identify_pattern() {
   bool frente = readingLine(analogRead(FRENTE));
@@ -109,44 +129,44 @@ PatternType identify_pattern() {
   bool centro = readingLine(analogRead(CENTRO));
 
   PatternType pattern = ALL_WHITE;
-  
-  if(frente && tras && centro && direita && esquerda) {
+
+  if (frente && tras && centro && direita && esquerda) {
     // tudo ligado, em cima de área preta
     pattern = ALL_BLACK;
   }
 
-  if(frente && tras && centro && !direita && !esquerda) {
+  if (frente && tras && centro && !direita && !esquerda) {
     // em cima da linha
     pattern = INLINE;
   }
-  if(frente && tras && centro && direita && !esquerda) {
+  if (frente && tras && centro && direita && !esquerda) {
     // sainda da linha à direita
     // corrigir para a esquerda
     pattern = LEAVING_TO_RIGHT;
   }
-  if(frente && tras && centro && !direita && esquerda) {
+  if (frente && tras && centro && !direita && esquerda) {
     // sainda da linha à esquerda
     // corrigir para a direita
     pattern = LEAVING_TO_LEFT;
   }
-  if(!frente && tras && centro && direita && !esquerda) {
+  if (!frente && tras && centro && direita && !esquerda) {
     // em cima de curva fechada para a direita
     pattern = RIGHT_BEND;
   }
-  if(!frente && tras && centro && !direita && esquerda) {
+  if (!frente && tras && centro && !direita && esquerda) {
     // em cima de curva fechada para a esquerda
     pattern = LEFT_BEND;
   }
-  if(frente && !tras && centro && direita && !esquerda) {
+  if (frente && !tras && centro && direita && !esquerda) {
     // em cima de curva para a direita indo para a frente
     pattern = RIGHT_BEND_REVERSE;
   }
-  if(frente && !tras && centro && !direita && esquerda) {
+  if (frente && !tras && centro && !direita && esquerda) {
     // em cima de curva para a esquerda indo para a frente
     pattern = LEFT_BEND_REVERSE;
   }
 
-  if(!frente && !tras && !centro && !direita && !esquerda) {
+  if (!frente && !tras && !centro && !direita && !esquerda) {
     // tudo desligado, em cima de área branca
     pattern = ALL_WHITE;
   }
@@ -249,38 +269,46 @@ bool readingLine(int value) {
   return value >= 512;
 }
 
+void contadorDireita() {
+  contador_direita++;
+}
+
+void contadorEsquerda() {
+  contador_esquerda++;
+}
+
 void debugPattern(PatternType pattern) {
   Serial.println("\nIdentifying pattern:");
-  switch(pattern){ 
+  switch (pattern) {
     case ALL_BLACK:
-        Serial.println("All black");
+      Serial.println("All black");
       break;
     case INLINE:
-        Serial.println("Over line");
+      Serial.println("Over line");
       break;
     case LEAVING_TO_RIGHT:
-        Serial.println("Saindo da linha para a direita");
+      Serial.println("Saindo da linha para a direita");
       break;
     case LEAVING_TO_LEFT:
-        Serial.println("Saindo da linha para a esquerda");
+      Serial.println("Saindo da linha para a esquerda");
       break;
     case RIGHT_BEND:
-        Serial.println("Canto/Curva para a direita");
+      Serial.println("Canto/Curva para a direita");
       break;
     case LEFT_BEND:
-        Serial.println("Canto/Curva para a esquerda");
+      Serial.println("Canto/Curva para a esquerda");
       break;
     case RIGHT_BEND_REVERSE:
-        Serial.println("Canto/Curva vindo da direita");
+      Serial.println("Canto/Curva vindo da direita");
       break;
     case LEFT_BEND_REVERSE:
-        Serial.println("Canto/Curva vindo da esquerda");
+      Serial.println("Canto/Curva vindo da esquerda");
       break;
     case ALL_WHITE:
-        Serial.println("All white");
+      Serial.println("All white");
       break;
     default:
-        Serial.println("Not recognized");
+      Serial.println("Not recognized");
       break;
   }
   delay(2000);
