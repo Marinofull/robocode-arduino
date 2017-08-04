@@ -1,4 +1,4 @@
-﻿/*
+/*
 *
 *	XBee communication on windows;
 *
@@ -6,6 +6,7 @@
 
 #include <Windows.h>
 #include <stdio.h>
+#include <string.h>
 
 int main(int argc, char **argv) {
 
@@ -74,58 +75,76 @@ int main(int argc, char **argv) {
 
   char s[1000];
 
-  // lê a entrada
-  printf("Entrada -> ");
-  scanf(" %[^\n]s%*c", s);
+  do {
 
-  DWORD dNoOfBytestoWrite;
-  DWORD dNoOfBytesWritten = 0;
+    // lê a entrada
+    printf("Entrada (X para sair) -> ");
+    scanf(" %[^\n]s%*c", s);
+    if (strcmp(s, "X") == 0) {
+      break;
+    }
 
-  dNoOfBytestoWrite = sizeof(s);
+    DWORD dNoOfBytestoWrite;
+    DWORD dNoOfBytesWritten = 0;
 
-  // envia para o xbee
-  Status =
-      WriteFile(serial_port, s, dNoOfBytestoWrite, &dNoOfBytesWritten, NULL);
-  // fprintf(serial_port, "%s\n", s);
+    char *sCopy = s;
 
-  if (Status == TRUE) {
-    printf("\n\n   %s - Written to %s", s, port_name);
-  } else {
-    printf("\n\n   Error %d in writting to serial port", GetLastError());
-  }
+    dNoOfBytestoWrite = sizeof(sCopy);
 
-  // recebe a resposta
-  Status = SetCommMask(serial_port, EV_RXCHAR);
-  if (Status == FALSE) {
-    printf("\n  Erro setando comm mask");
-  }
+    // envia para o xbee
+    Status = WriteFile(serial_port, sCopy, dNoOfBytestoWrite,
+                       &dNoOfBytesWritten, NULL);
+    // fprintf(serial_port, "%s\n", s);
 
-  printf("\n\n Waiting for Data Reception");
+    if (Status == TRUE) {
+      if (dNoOfBytesWritten == 0) {
+        printf("\n Escreveu NADA!");
+      }
+      printf("\n\n   %s - Written to %s", s, port_name);
+    } else {
+      printf("\n\n   Error %d in writting to serial port", GetLastError());
+    }
 
-  Status = WaitCommEvent(serial_port, &dwEventMask, NULL);
-  if (Status == FALSE) {
-    printf("\n  Erro setando WaitCommEvent");
-  } else {
-    printf("\n\n Reading");
-    do {
-      Status = ReadFile(serial_port, &TempChar, sizeof(TempChar), &NoBytesRead,
-                        NULL);
-      SerialBuffer[i] = TempChar;
-      i++;
-    } while (NoBytesRead > 0);
+    // recebe a resposta
+    Status = SetCommMask(serial_port, EV_RXCHAR);
+    if (Status == FALSE) {
+      printf("\n  Erro setando comm mask");
+    }
+
+    printf("\n\n Waiting for Data Reception");
+
+    Status = WaitCommEvent(serial_port, &dwEventMask, NULL);
+    if (Status == FALSE) {
+      printf("\n  Erro settando WaitCommEvent");
+    } else {
+      printf("\n\n Reading");
+      do {
+        Status = ReadFile(serial_port, &TempChar, sizeof(TempChar),
+                          &NoBytesRead, NULL);
+        SerialBuffer[i] = TempChar;
+        i++;
+      } while (NoBytesRead > 0);
+
+      // imprime o resultado
+      printf("\n\n");
+      for (int j = 0; j < i - 1; j++) {
+        printf("%c", SerialBuffer[j]);
+      }
+    }
+    // fscanf(serial_port, "%s%*c", s);
 
     // imprime o resultado
-    printf("\n\n");
-    for (int j = 0; j < i - 1; j++) {
-      printf("%c", SerialBuffer[j]);
-    }
-  }
-  // fscanf(serial_port, "%s%*c", s);
+    // printf("Resposta -> %s\n", s);
 
-  // imprime o resultado
-  // printf("Resposta -> %s\n", s);
-
+  } while (strcmp(s, "X") != 0);
   // fecha a porta serial;
+
+  COMSTAT stat;
+
+  if (ClearCommError(serial_port, NULL, &stat)) {
+    printf("\n%u bytes in outbound queue \n", (unsigned int)stat.cbOutQue);
+  }
+
   CloseHandle(serial_port);
 
   return 0;

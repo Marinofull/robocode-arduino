@@ -255,6 +255,27 @@ void debugPattern(PatternType pattern) {
     case ALL_BLACK:
         Serial.println("All black");
       break;
+    case INLINE:
+        Serial.println("Over line");
+      break;
+    case LEAVING_TO_RIGHT:
+        Serial.println("Saindo da linha para a direita");
+      break;
+    case LEAVING_TO_LEFT:
+        Serial.println("Saindo da linha para a esquerda");
+      break;
+    case RIGHT_BEND:
+        Serial.println("Canto/Curva para a direita");
+      break;
+    case LEFT_BEND:
+        Serial.println("Canto/Curva para a esquerda");
+      break;
+    case RIGHT_BEND_REVERSE:
+        Serial.println("Canto/Curva vindo da direita");
+      break;
+    case LEFT_BEND_REVERSE:
+        Serial.println("Canto/Curva vindo da esquerda");
+      break;
     case ALL_WHITE:
         Serial.println("All white");
       break;
