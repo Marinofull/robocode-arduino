@@ -23,6 +23,10 @@
 String msg;
 int mem[MEM];
 int pos = 0;    // variable to store the servo position
+int board[9];   // tabuleiro do jogo da velha
+GameState game_state;
+int turn;
+bool human_starts;
 
 SoftwareSerial XBee(PORTARX, PORTATX);
 Servo myservo;  // create servo object to control a servo
@@ -51,6 +55,11 @@ void setup() {
   Serial.begin(9600);
   for (int i = 0; i < MEM; i++)
     mem[i] = 0;
+  for (int i = 0; i < 9; i++)
+    board[i] = 0;
+  game_state = BOOTING;
+  turn = 0;
+  human_starts = true;
   /*
     Seta as coisa reservada
   */
@@ -86,6 +95,27 @@ void setup() {
 
 void loop() {
 
+  if (game_state == BOOTING) {
+    draw_board();
+    Serial.println("Seu turno (Posições de S1 a S9)");
+    game_state = PLAYING;
+  }
+
+  if (game_state == REMATCH) {
+    for (int i = 0; i < 9; i++)
+      board[i] = 0;
+    human_starts = !human_starts;
+    if (!human_starts) {
+      int choices[7] = {0, 2, 4, 4, 4, 6, 8};
+      int choice = random(7);
+      board[choices[choice]] = 1;
+      turn = 1;
+    } else {
+      turn = 0;
+    }
+    game_state = BOOTING;
+  }
+
   //Se tiver data sendo mandada pelo serial monitor
   if (Serial.available()) {
     msg = String(Serial.readString());
@@ -103,7 +133,7 @@ void loop() {
   }
   //sensorDebug();
   //swing();
-  debugPattern(identify_pattern());
+  //debugPattern(identify_pattern());
 
   /*
      Vendor stuff
@@ -174,7 +204,6 @@ PatternType identify_pattern() {
   return pattern;
 }
 
-
 int parse_msg(String msg) {
   char c = msg[0];
   int p, value;
@@ -191,6 +220,9 @@ int parse_msg(String msg) {
       mem[p] = value;
       Serial.print("R");//Response prefix
       Serial.println(mem[p]);
+      if (1 <= p && p <= 9 && game_state == PLAYING && board[p-1] == 0) {
+        human_move(p - 1);
+      }
       break;
     case 'M':
       Serial.println(&msg[1]);
@@ -313,3 +345,119 @@ void debugPattern(PatternType pattern) {
   }
   delay(2000);
 }
+
+/***********************************************************************************************************
+     TicTacToe
+ ***********************************************************************************************************/
+
+char displayChar(int c) {
+  switch (c) {
+    case 0:
+      return ' ';
+    case AI_PLAYER:
+      return '0';
+    case HUMAN_PLAYER:
+      return 'X';
+  }
+}
+
+void draw_board() {
+  Serial.print(" "); Serial.print(displayChar(board[0])); Serial.print(" | "); Serial.print(displayChar(board[1])); Serial.print(" | "); Serial.print(displayChar(board[2])); Serial.println(" ");
+  Serial.println("---+---+---");
+  Serial.print(" "); Serial.print(displayChar(board[3])); Serial.print(" | "); Serial.print(displayChar(board[4])); Serial.print(" | "); Serial.print(displayChar(board[5])); Serial.println(" ");
+  Serial.println("---+---+---");
+  Serial.print(" "); Serial.print(displayChar(board[6])); Serial.print(" | "); Serial.print(displayChar(board[7])); Serial.print(" | "); Serial.print(displayChar(board[8])); Serial.println(" ");
+}
+
+int win_situation() {
+  unsigned wins[8][3] = {{0, 1, 2}, {3, 4, 5}, {6, 7, 8}, {0, 3, 6}, {1, 4, 7}, {2, 5, 8}, {0, 4, 8}, {2, 4, 6}};
+  int i;
+  for (i = 0; i < 8; ++i) {
+    if (board[wins[i][0]] != 0 &&
+        board[wins[i][0]] == board[wins[i][1]] &&
+        board[wins[i][0]] == board[wins[i][2]])
+      return board[wins[i][2]];
+  }
+  return 0;
+}
+
+int minimax(int player) {
+  int winner = win_situation();
+  if (winner != 0) return winner * player;
+
+  int movement = -1;
+  int score = -2;
+  for (int i = 0; i < 9; i++) {
+    if (board[i] == 0) {
+      board[i] = player;
+      int this_score = - minimax(player * -1);
+      if (this_score > score) {
+        score = this_score;
+        movement = i;
+      }
+      board[i] = 0;
+    }
+  }
+  if (movement == -1) return 0;
+  return score;
+}
+
+void ai_move() {
+  int movement = -1;
+  int score = -2;
+  int i;
+  for (i = 0; i < 9; i++) {
+    if (board[i] == 0) {
+      board[i] = 1;
+      int temp_score = -1 * minimax(-1);
+      if (temp_score > score) {
+        score = temp_score;
+        movement = i;
+      }
+      board[i] = 0;
+    }
+  }
+  board[movement] = 1;
+
+  if (!check_win_state())
+    Serial.println("Seu turno (Posições de S1 a S9)");
+}
+
+void human_move(int i) {
+  board[i] = HUMAN_PLAYER;
+  if (!check_win_state()) {
+    Serial.println("Computer Move");
+    ai_move();
+  }
+}
+
+bool check_win_state() {
+  draw_board();
+  turn++;
+  int check_win = 0;
+  if (turn >= 5) check_win = win_situation();
+  if (turn >= 9 || check_win != 0) {
+    Serial.println("Game Over");
+    finish_game(check_win);
+    return true;
+  }
+  return false;
+}
+
+void finish_game(int result) {
+  switch (result) {
+    case 0:
+      Serial.println("\nA draw. How droll.\n");
+      break;
+    case AI_PLAYER:
+      draw_board();
+      Serial.println("\nYou lose.\n");
+      break;
+    case HUMAN_PLAYER:
+      Serial.println("\nYou win. Inconceivable!\n");
+      break;
+  }
+  game_state = REMATCH;
+  turn = 0;
+}
+

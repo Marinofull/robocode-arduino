@@ -7,6 +7,15 @@
 // Memoria do arduino para os valores de gets e sets
 #define MEM 50
 
+// Jogo da Velha
+#define AI_PLAYER 1
+#define HUMAN_PLAYER -1
+typedef enum {
+  BOOTING,
+  PLAYING,
+  REMATCH
+} GameState;
+
 // usar 2 e 3 quando a chave estiver em dline, e usar rx(0) e tx(1) quando tiver em uart
 #define PORTARX 2 // 0 RX 
 #define PORTATX 3 // 1 TX 
