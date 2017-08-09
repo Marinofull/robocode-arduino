@@ -7,18 +7,29 @@
 // Memoria do arduino para os valores de gets e sets
 #define MEM 50
 
+// comenta isso para poder jogar, caso contrario o robo apenas vai tentar andar
+#define JUSTMOVE
+
 // Jogo da Velha
 #define AI_PLAYER 1
 #define HUMAN_PLAYER -1
 typedef enum {
   BOOTING,
   PLAYING,
+  MOVING,
   REMATCH
 } GameState;
 
+#define DLINE
+
 // usar 2 e 3 quando a chave estiver em dline, e usar rx(0) e tx(1) quando tiver em uart
-#define PORTARX 2 // 0 RX 
-#define PORTATX 3 // 1 TX 
+#ifdef DLINE
+          #define PORTARX 2 // 0 RX 
+          #define PORTATX 3 // 1 TX 
+#else
+          #define PORTARX 0
+          #define PORTATX 3
+#endif
 
 // Sensores de luz
 #define DIREITA A0
@@ -37,6 +48,8 @@ typedef enum {
   LEFT_BEND,
   RIGHT_BEND_REVERSE,
   LEFT_BEND_REVERSE,
+  END_OF_LINE,
+  BEGINNING_OF_LINE,
   ALL_WHITE
 
 } PatternType;
