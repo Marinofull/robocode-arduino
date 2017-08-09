@@ -58,6 +58,8 @@ void setup() {
   for (int i = 0; i < 9; i++)
     board[i] = 0;
   game_state = BOOTING;
+  if(JUSTMOVE)
+     game_state = MOVING;
   turn = 0;
   human_starts = true;
   /*
@@ -80,13 +82,16 @@ void setup() {
   pinMode(DIRECAO_ESQUERDA_1, OUTPUT);
   pinMode(DIRECAO_ESQUERDA_2, OUTPUT);
 
-  // Configuração dos pinos do Encoder Ótico
-  //pinMode(ENCODER_DIREITA, INPUT_PULLUP);
-  //pinMode(ENCODER_ESQUERDA, INPUT_PULLUP);
-
-  // Funções de Interrupção de cada um dos Encoders
-  //attachInterrupt(digitalPinToInterrupt(ENCODER_DIREITA), contadorDireita, CHANGE);
-  //attachInterrupt(digitalPinToInterrupt(ENCODER_ESQUERDA), contadorEsquerda, CHANGE);
+  // Se não estiver em DLINE e usando os pinos digitais para serial
+  if(!DLINE) {
+    // Configuração dos pinos do Encoder Ótico
+    pinMode(ENCODER_DIREITA, INPUT_PULLUP);
+    pinMode(ENCODER_ESQUERDA, INPUT_PULLUP);
+    
+    // Funções de Interrupção de cada um dos Encoders
+    attachInterrupt(digitalPinToInterrupt(ENCODER_DIREITA), contadorDireita, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(ENCODER_ESQUERDA), contadorEsquerda, CHANGE);
+  }
 }
 
 /***********************************************************************************************************
@@ -115,6 +120,14 @@ void loop() {
     }
     game_state = BOOTING;
   }
+  
+  if (game_state == MOVING) {
+    // verifica se está no destino, se não se move
+    se_move();
+    // se está no destino volta para o jogo
+    if(!JUSTMOVE)
+      game_state = PLAYING;
+  }
 
   //Se tiver data sendo mandada pelo serial monitor
   if (Serial.available()) {
@@ -131,25 +144,51 @@ void loop() {
     Serial.println(msg);
     parse_msg_xbee(msg);
   }
+  
   //sensorDebug();
   //swing();
   //debugPattern(identify_pattern());
-
-  /*
-     Vendor stuff
-     ACELERA_DIREITA(velocidadeDireita);
-    ACELERA_ESQUERDA(velocidadeEsquerda);
-    IR_PARA_FRENTE_DIREITA();
-    IR_PARA_FRENTE_ESQUERDA();
-    delay(1000);
-    FREIO();
-    delay(1500);
-  */
 }
 
 /***********************************************************************************************************
     Outras Funções
  ***********************************************************************************************************/
+
+void se_move() {
+  PatternType padrao = identify_pattern();
+  switch(padrao) {
+    case BEGINNING_OF_LINE:
+    case INLINE:
+      ACELERA_DIREITA(velocidadeDireita);
+      ACELERA_ESQUERDA(velocidadeEsquerda);
+      IR_PARA_FRENTE_DIREITA();
+      IR_PARA_FRENTE_ESQUERDA();
+      break;
+    case LEAVING_TO_LEFT:
+      FREIO_DIREITA();
+      ACELERA_ESQUERDA(velocidadeEsquerda/2);
+      IR_PARA_FRENTE_ESQUERDA();
+      break;
+    case LEAVING_TO_RIGHT:
+      FREIO_ESQUERDA();
+      ACELERA_DIREITA(velocidadeDireita/2);
+      IR_PARA_FRENTE_DIREITA();
+      break;
+    case LEFT_BEND:
+      FREIO_ESQUERDA();
+      ACELERA_DIREITA(velocidadeDireita);
+      IR_PARA_FRENTE_DIREITA();
+      break;
+    case RIGHT_BEND:
+      FREIO_DIREITA();
+      ACELERA_ESQUERDA(velocidadeEsquerda);
+      IR_PARA_FRENTE_ESQUERDA();
+      break;
+    case END_OF_LINE:
+    default:
+      FREIO();
+  }
+}
 
 PatternType identify_pattern() {
   bool frente = readingLine(analogRead(FRENTE));
@@ -194,6 +233,14 @@ PatternType identify_pattern() {
   if (frente && !tras && centro && !direita && esquerda) {
     // em cima de curva para a esquerda indo para a frente
     pattern = LEFT_BEND_REVERSE;
+  }
+  if (frente && !tras && !direita && !esquerda) {
+    // no começo de uma linha, centro irrelevante
+    pattern = BEGINNING_OF_LINE;
+  }
+  if (!frente && tras && !direita && !esquerda) {
+    // fim de uma linha, centro irrelevante
+    pattern = END_OF_LINE;
   }
 
   if (!frente && !tras && !centro && !direita && !esquerda) {
@@ -263,21 +310,6 @@ int parse_msg_xbee(String msg) {
   return 0;
 }
 
-void sensorDebug() {
-  Serial.print("Frente = ");
-  Serial.println(analogRead(FRENTE));
-  Serial.print("Centro = ");
-  Serial.println(analogRead(CENTRO));
-  Serial.print("Tras = ");
-  Serial.println(analogRead(TRAS));
-  Serial.print("Direita = ");
-  Serial.println(analogRead(DIREITA));
-  Serial.print("Esquerda = ");
-  Serial.println(analogRead(ESQUERDA));
-
-  delay(2000);
-}
-
 void swing()
 {
   for (pos = 180; pos >= 0; pos -= 1) // goes from 180 degrees to 0 degrees
@@ -309,42 +341,6 @@ void contadorEsquerda() {
   contador_esquerda++;
 }
 
-void debugPattern(PatternType pattern) {
-  Serial.println("\nIdentifying pattern:");
-  switch (pattern) {
-    case ALL_BLACK:
-      Serial.println("All black");
-      break;
-    case INLINE:
-      Serial.println("Over line");
-      break;
-    case LEAVING_TO_RIGHT:
-      Serial.println("Saindo da linha para a direita");
-      break;
-    case LEAVING_TO_LEFT:
-      Serial.println("Saindo da linha para a esquerda");
-      break;
-    case RIGHT_BEND:
-      Serial.println("Canto/Curva para a direita");
-      break;
-    case LEFT_BEND:
-      Serial.println("Canto/Curva para a esquerda");
-      break;
-    case RIGHT_BEND_REVERSE:
-      Serial.println("Canto/Curva vindo da direita");
-      break;
-    case LEFT_BEND_REVERSE:
-      Serial.println("Canto/Curva vindo da esquerda");
-      break;
-    case ALL_WHITE:
-      Serial.println("All white");
-      break;
-    default:
-      Serial.println("Not recognized");
-      break;
-  }
-  delay(2000);
-}
 
 /***********************************************************************************************************
      TicTacToe
@@ -461,3 +457,58 @@ void finish_game(int result) {
   turn = 0;
 }
 
+/***********************************************************************************************************
+  Debug
+  ***********************************************************************************************************/
+
+void sensorDebug() {
+  Serial.print("Frente = ");
+  Serial.println(analogRead(FRENTE));
+  Serial.print("Centro = ");
+  Serial.println(analogRead(CENTRO));
+  Serial.print("Tras = ");
+  Serial.println(analogRead(TRAS));
+  Serial.print("Direita = ");
+  Serial.println(analogRead(DIREITA));
+  Serial.print("Esquerda = ");
+  Serial.println(analogRead(ESQUERDA));
+
+  delay(2000);
+}
+
+void debugPattern(PatternType pattern) {
+  Serial.println("\nIdentifying pattern:");
+  switch (pattern) {
+    case ALL_BLACK:
+      Serial.println("All black");
+      break;
+    case INLINE:
+      Serial.println("Over line");
+      break;
+    case LEAVING_TO_RIGHT:
+      Serial.println("Saindo da linha para a direita");
+      break;
+    case LEAVING_TO_LEFT:
+      Serial.println("Saindo da linha para a esquerda");
+      break;
+    case RIGHT_BEND:
+      Serial.println("Canto/Curva para a direita");
+      break;
+    case LEFT_BEND:
+      Serial.println("Canto/Curva para a esquerda");
+      break;
+    case RIGHT_BEND_REVERSE:
+      Serial.println("Canto/Curva vindo da direita");
+      break;
+    case LEFT_BEND_REVERSE:
+      Serial.println("Canto/Curva vindo da esquerda");
+      break;
+    case ALL_WHITE:
+      Serial.println("All white");
+      break;
+    default:
+      Serial.println("Not recognized");
+      break;
+  }
+  delay(2000);
+}
