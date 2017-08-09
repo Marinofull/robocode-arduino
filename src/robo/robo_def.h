@@ -28,7 +28,7 @@ typedef enum {
           #define PORTATX 3 // 1 TX 
 #else
           #define PORTARX 0
-          #define PORTATX 3
+          #define PORTATX 1
 #endif
 
 // Sensores de luz
@@ -51,7 +51,6 @@ typedef enum {
   END_OF_LINE,
   BEGINNING_OF_LINE,
   ALL_WHITE
-
 } PatternType;
 
 #define ENCODER_DIREITA 2
