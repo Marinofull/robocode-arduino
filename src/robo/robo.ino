@@ -83,7 +83,7 @@ void setup() {
   pinMode(DIRECAO_ESQUERDA_2, OUTPUT);
 
   // Se não estiver em DLINE e usando os pinos digitais para serial
-  if(!DLINE) {
+  #ifndef DLINE
     // Configuração dos pinos do Encoder Ótico
     pinMode(ENCODER_DIREITA, INPUT_PULLUP);
     pinMode(ENCODER_ESQUERDA, INPUT_PULLUP);
@@ -91,7 +91,7 @@ void setup() {
     // Funções de Interrupção de cada um dos Encoders
     attachInterrupt(digitalPinToInterrupt(ENCODER_DIREITA), contadorDireita, CHANGE);
     attachInterrupt(digitalPinToInterrupt(ENCODER_ESQUERDA), contadorEsquerda, CHANGE);
-  }
+  #endif
 }
 
 /***********************************************************************************************************
