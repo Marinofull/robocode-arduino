@@ -185,6 +185,12 @@ void se_move() {
       IR_PARA_FRENTE_ESQUERDA();
       break;
     case END_OF_LINE:
+      FREIO();
+      delay(1000);
+      ACELERA_DIREITA(velocidadeDireita);
+      ACELERA_ESQUERDA(velocidadeEsquerda);
+      IR_PARA_TRAS_DIREITA();
+      IR_PARA_TRAS_ESQUERDA();
     default:
       FREIO();
   }
