@@ -20,7 +20,7 @@ typedef enum {
   REMATCH
 } GameState;
 
-#define DLINE
+//#define DLINE
 
 // usar 2 e 3 quando a chave estiver em dline, e usar rx(0) e tx(1) quando tiver em uart
 #ifdef DLINE
