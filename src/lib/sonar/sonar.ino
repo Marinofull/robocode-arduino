@@ -10,7 +10,6 @@
 Servo myservo;  // create servo object to control a servo
 int pos = 0;    // variable to store the servo position
 int limiar = secureDistance;
-long distance = 200;
 
 void setup() {
   Serial.begin (9600);
@@ -24,16 +23,21 @@ void setup() {
 }
 
 void loop() {
+  lookAhead();
+
   while(walk());
+
   lookAtLeft();
-  if (isWall()){
-    //rotateRight();
-    delay(2000);
-    extend();
-  } else{
+  if (!(isWall())){
     //rotateLeft();
     delay(1000);
-    extend();
+    lookAhead();
+  } else{
+    //essa olhada eh de mentira
+    lookAtRight();
+    //rotateRight();
+    delay(1000);
+    lookAhead();
   }
 }
 
@@ -53,7 +57,20 @@ void swing()
 
 int walk()
 {
-  long duration;
+  if (isWall()) {
+    digitalWrite(led,HIGH);
+    //set motors to 0
+    return 0;
+  }
+  digitalWrite(led,LOW);
+  //set motors to walk
+  delay(500);
+  return 1;
+}
+
+int isWall(){
+  long duration, distance;
+
   digitalWrite(trigPin, LOW);
   delayMicroseconds(10);
   digitalWrite(trigPin, HIGH);
@@ -70,20 +87,14 @@ int walk()
     Serial.print(distance);
     Serial.println(" cm");
   }
-  //turn on led when its close the wall
-  if (isWall()) {
-    digitalWrite(led,HIGH);
-    return 0;
-  }
-  digitalWrite(led,LOW);
-  delay(500);
-  return 1;
-}
-
-int isWall(){
   if (distance < limiar)
     return 1;
   return 0;
+}
+
+void lookAhead()
+{
+  myservo.write(90);
 }
 
 void lookAtLeft()
