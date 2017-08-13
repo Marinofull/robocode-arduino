@@ -4,6 +4,7 @@
 #define echoPin 12
 #define led 13
 #define led2 10
+#define servoPin 4
 #define secureDistance 10
 #define sonnarCoef 27.623
 
@@ -17,7 +18,7 @@ void setup() {
   pinMode(echoPin, INPUT);
   pinMode(led, OUTPUT);
   //pinMode(led2, OUTPUT);
-  myservo.attach(9);  // attaches the servo on pin 9 to the servo object
+  myservo.attach(servoPin);  // attaches the servo on pin 4 to the servo object (tava livre)
   extend();
 
 }
