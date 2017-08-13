@@ -7,6 +7,7 @@
   Boards Supported:
       Arduino UNO
   Dependencies:
+      Ultrasonic, 2.1.0
       XBee-Arduino Library, 0.6.0
       XCTU, 6.3.8 (usado externamente para monitorar comunicação entre xbee e arduino)
   Description:
@@ -16,6 +17,7 @@
 #include "robo_def.h"
 #include <SoftwareSerial.h>
 #include <Servo.h>
+#include <Ultrasonic.h>
 
 /*
    Globals
@@ -27,9 +29,11 @@ int board[9];   // tabuleiro do jogo da velha
 GameState game_state;
 int turn;
 bool human_starts;
+bool devoAndar;
 
 SoftwareSerial XBee(PORTARX, PORTATX);
 Servo myservo;  // create servo object to control a servo
+Ultrasonic ultrasonic(TRIGGER, ECHO);
 
 /*
    Vendor stuff
@@ -58,16 +62,18 @@ void setup() {
   for (int i = 0; i < 9; i++)
     board[i] = 0;
   game_state = BOOTING;
-  if(JUSTMOVE)
+  #ifdef JUSTMOVE
      game_state = MOVING;
+  #endif
+  devoAndar = (mem[0] != 0);
   turn = 0;
   human_starts = true;
   /*
     Seta as coisa reservada
   */
-  //myservo.attach(9);  // attaches the servo on pin 9 to the servo object
-  //extend();
-  delay(500);
+  myservo.attach(SERVO);
+  extend();
+  
   if (XBee.isListening()) {
     Serial.println("XBee está conectado!");
     XBee.println("XBee está conectado!");
@@ -121,12 +127,32 @@ void loop() {
     game_state = BOOTING;
   }
   
-  if (game_state == MOVING) {
+  if (game_state == MOVING && devoAndar) {
     // verifica se está no destino, se não se move
-    se_move();
+    //se_move();
+    lookAhead();
+
+    while(walk());
+
+    lookLeft();
+    if(!isWall()){
+      rotateLeft();
+      delay(2000);
+      lookAhead();
+    } else {
+      lookRight();
+      rotateRight();
+      delay(2000);
+      lookAhead();
+    }
     // se está no destino volta para o jogo
-    if(!JUSTMOVE)
+    #ifndef JUSTMOVE
       game_state = PLAYING;
+    #endif
+  }
+
+  if(!devoAndar) {
+    FREIO();
   }
 
   //Se tiver data sendo mandada pelo serial monitor
@@ -194,6 +220,40 @@ void se_move() {
     default:
       FREIO();
   }
+}
+
+bool walk() {
+  if(isWall()) {
+    //digitalWrite(led,HIGH);
+    FREIO();
+    delay(500);
+    return false;
+  }
+  //digitalWrite(led,LOW);
+  ACELERA_DIREITA(velocidadeDireita);
+  ACELERA_ESQUERDA(velocidadeEsquerda);
+  IR_PARA_FRENTE_DIREITA();
+  IR_PARA_FRENTE_ESQUERDA();
+  delay(500);
+  return true;
+}
+
+void rotateLeft() {
+  ACELERA_DIREITA(velocidadeDireita);
+  ACELERA_ESQUERDA(0);
+  IR_PARA_FRENTE_DIREITA();
+  delay(500);
+  FREIO();
+  delay(500);
+}
+
+void rotateRight() {
+  ACELERA_DIREITA(0);
+  ACELERA_ESQUERDA(velocidadeEsquerda);
+  IR_PARA_FRENTE_ESQUERDA();
+  delay(500);
+  FREIO();
+  delay(500);
 }
 
 PatternType identify_pattern() {
@@ -276,6 +336,13 @@ int parse_msg(String msg) {
       if (1 <= p && p <= 9 && game_state == PLAYING && board[p-1] == 0) {
         human_move(p - 1);
       }
+      if(p == 0) {
+        if(value == 0) {
+          devoAndar = false;
+        } else {
+          devoAndar = true;
+        }
+      }
       break;
     case 'M':
       Serial.println(&msg[1]);
@@ -330,9 +397,33 @@ void swing()
   }
 }
 
-void extend() {
+void lookAhead() {
+  myservo.write(90);
+}
+
+void lookLeft() {
+  myservo.write(0);
+}
+
+void lookRight() {
   myservo.write(180);
+}
+
+void extend() {
+  lookAhead();
   delay(1000);
+}
+
+bool isWall() {
+  long distance = ultrasonic.distanceRead(CM);
+  if(distance >= 200 || distance <= 0) {
+    Serial.println("Out of Range");
+  } else {
+    Serial.print(distance);
+    Serial.println("cm");
+  }
+
+  return (distance < DISTANCIA_SEGURA);
 }
 
 bool readingLine(int value) {

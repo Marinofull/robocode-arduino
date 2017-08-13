@@ -38,6 +38,14 @@ typedef enum {
 #define TRAS A3
 #define CENTRO A4
 
+// Ultra Som
+#define TRIGGER 11
+#define ECHO 12
+#define DISTANCIA_SEGURA 10
+
+// Servo Motor
+#define SERVO 4
+
 // Padrões possíveis de reconhecer através dos sensores
 typedef enum {
   ALL_BLACK,
@@ -61,11 +69,12 @@ typedef enum {
 
 //  Definição das entradas para os motores de cada lado, observem que alguns robôs precisaram ter os pinos trocados devido aos módulos de comunicação que utilizam.
 //  Vejam os 4 fios unidos da ponte H que são conectados no Arduino para saberem o padrão do robô que vocês tem em mãos.
-#define DIRECAO_DIREITA_1 7   //4
-#define DIRECAO_DIREITA_2 8   //7
+//  Eles estão assumindo o ultrasom como frente, para o lado oposto basta trocar os pins
+#define DIRECAO_DIREITA_1 8   //7
+#define DIRECAO_DIREITA_2 7   //8
 
-#define DIRECAO_ESQUERDA_1 9  //8
-#define DIRECAO_ESQUERDA_2 10 //9
+#define DIRECAO_ESQUERDA_1 10  //9
+#define DIRECAO_ESQUERDA_2 9 //10
 
 #define IR_PARA_FRENTE_DIREITA() do { digitalWrite(DIRECAO_DIREITA_1, HIGH); digitalWrite(DIRECAO_DIREITA_2, LOW); } while(false)
 #define IR_PARA_FRENTE_ESQUERDA() do { digitalWrite(DIRECAO_ESQUERDA_1, HIGH); digitalWrite(DIRECAO_ESQUERDA_2, LOW); } while(false)
