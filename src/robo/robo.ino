@@ -240,17 +240,19 @@ bool walk() {
 
 void rotateLeft() {
   ACELERA_DIREITA(velocidadeDireita);
-  ACELERA_ESQUERDA(0);
+  ACELERA_ESQUERDA(velocidadeEsquerda);
   IR_PARA_FRENTE_DIREITA();
+  IR_PARA_TRAS_ESQUERDA();
   delay(500);
   FREIO();
   delay(500);
 }
 
 void rotateRight() {
-  ACELERA_DIREITA(0);
+  ACELERA_DIREITA(velocidadeDireita);
   ACELERA_ESQUERDA(velocidadeEsquerda);
   IR_PARA_FRENTE_ESQUERDA();
+  IR_PARA_TRAS_DIREITA();
   delay(500);
   FREIO();
   delay(500);
@@ -418,12 +420,13 @@ bool isWall() {
   long distance = ultrasonic.distanceRead(CM);
   if(distance >= 200 || distance <= 0) {
     Serial.println("Out of Range");
+    return false;
   } else {
     Serial.print(distance);
     Serial.println("cm");
   }
 
-  return (distance < DISTANCIA_SEGURA);
+  return distance < DISTANCIA_SEGURA;
 }
 
 bool readingLine(int value) {
