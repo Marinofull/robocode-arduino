@@ -10,7 +10,7 @@
 #define initialx 0
 #define initialy 1
 
-int labyrinth[5][5]=
+int labyrinth[MAX][MAX]=
 {
    {1, 0, 1, 1, 1}, //posx = 0
    {1, 0, 0, 0, 1}, //posx = 1
