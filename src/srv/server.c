@@ -78,7 +78,31 @@ int main(){
         /* Fecha a porta serial */
         fclose(serial_port);
       }
-    } else
+    } else if (mode == 'i') {
+      for(;;){
+        serial_port = fopen(device, "r+");
+
+        /* Se nulo a porta está sendo usada ou você não tem privilégios */
+        if(serial_port == NULL){
+          printf("Error opening port");
+          return 1;
+        }
+
+        /* Lê a entrada */
+        printf("ENTRADA  -> ");
+        scanf(" %[^\n]s%*c", s);
+        if(s[0] != 'e') {
+          /* Envia para o Xbee */
+          fprintf(serial_port, "%s\n", s);
+          /* Recebe resposta */
+          fscanf(serial_port, "%s%*c", s);
+          printf("RESPOSTA -> %s\n", s);
+          /* Fecha a porta serial */
+          fclose(serial_port);
+        }
+      }
+    }
+    else
       printf("invalid mode\n");
 
   }
